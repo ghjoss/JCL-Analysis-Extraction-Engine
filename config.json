@@ -1,0 +1,14 @@
+{
+  "PROJECT":"COBOL_BUILD_2026",
+  "SYSTEM": "LWM",
+  "FILE": "REORGCMD",
+  "EXT": "jcl",
+  "PATH": "/home/joss/Source/PythonApps/JCL_Parsing/jcl",
+  "LIB": [
+    "/home/joss/Source/PythonApps/JCL_Parsing/jcl"
+  ],
+  "DATABASE": "jcl_db",
+  "USER":"postgres",
+  "PASSWORD":"pw",
+  "DROP_TABLES": "True"
+}
