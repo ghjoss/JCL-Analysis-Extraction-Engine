@@ -1,0 +1,91 @@
+ey Architectural Notes on the C++ Version:
+
+    Memory Management: The C++ version uses vector<JclStep> and DataAllocation structs to manage the object hierarchy, 
+	mirroring the structured dictionaries used in the Python Lark transformer.
+
+    Manual ID Scoping: The DatabaseManager::save method implements the manual increment logic requested. It performs a 
+	COALESCE(MAX(step_id), 0) query per project and then increments programmatically. ds_id resets to 1 for every JclStep 
+	iteration.
+
+    Concatenation Handling: A std::map<string, int> concat_tracker is used during the DB insertion phase to compute the 
+	allocation_offset. It tracks how many times a dd_name has appeared within the current step.
+
+    String Processing: C++ std::regex is used to identify the positional JCL opcodes (EXEC, DD). This replicates the 
+	high-priority opcode terminals defined in your Lark grammar.
+
+    DSN Fallbacks: The (dummy), (input stream), and (work_ds) fallbacks are implemented during the parsing phase to 
+	ensure the database accurately reflects the allocation type.
+
+Build Dependencies:
+
+To compile this, you will need:
+
+    A C++17 compatible compiler (GCC/Clang).
+
+    libpqxx development headers.
+
+    nlohmann/json header.
+
+    Linker flags: -lpqxx -lpq.
+	
+	
+Since C++ does not have a "built-in" equivalent to Lark, the conversion gemini provided shifted from a Declarative LALR model to a 
+Procedural Regex-based Parser.
+gemini
+Here is a breakdown of how that C++ version handled the logic without a formal grammar engine:
+1. Pattern Matching instead of Grammar Rules
+
+In the Python version, Lark uses the grammar to understand that a line starting with // followed by an ID and then EXEC is an execution 
+statement.
+
+In the C++ version, gemini used Regular Expressions (std::regex) to "brute force" that recognition. For example:
+C++
+
+regex exec_regex(R"(//([A-Z0-9#@$]{1,8})?\s+EXEC\s+(PGM=|PROC=)?([A-Z0-9#@$]{1,8}))", regex::icase);
+
+This regex mimics the exec_statement rule by explicitly looking for:
+
+    The // prefix.
+
+    An optional label (Group 1).
+
+    The EXEC opcode.
+
+    The program or procedure name (Group 3).
+
+2. Manual Priority Handling
+
+One of the most important parts of your Lark grammar is OP_EXEC.4, which gives the opcode priority over a label. This prevents a 
+line like //DD1 DD ... from thinking DD1 is the opcode.
+
+In the C++ code, gemini handled this procedurally:
+
+    The code first checks if the string matches the EXEC pattern.
+
+    If it doesn't, it checks the DD pattern.
+
+    If it matches neither, it treats it as a continuation or error.
+
+    By ordering the if/else if statements, I effectively "hard-coded" the priority that the LALR model handles automatically.
+
+3. Splitting vs. Lexing
+
+Lark's lexer tokenizes the entire stream based on terminals. In the C++ version, once an opcode was identified, gemini used a 
+Split-and-Parse approach:
+
+    The "params" portion of the string was split by commas (while ignoring commas inside quotes).
+
+    Each split part was then checked for an = sign.
+
+    If an = was found, it was mapped to a key-value dictionary (equivalent to the symbolic_override or keyword_param rules in 
+	the grammar).
+
+Why the difference?
+
+    Python (Lark): Is much more robust. If you added nested logic (like parentheses inside parentheses), the LALR model would 
+	handle it effortlessly. It is "smarter" about the structure.
+
+    C++ (Regex): Is faster and has zero dependencies, but it is "brittle." It assumes JCL follows a very specific linear pattern. 
+	If the JCL syntax got significantly more complex, the C++ version would require a formal tool like Bison or ANTLR to replicate 
+	what Lark does.
+
