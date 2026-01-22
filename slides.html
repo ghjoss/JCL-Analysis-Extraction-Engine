@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JCL Analysis & Extraction Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;700&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* CORE DESIGN PRINCIPLES:
+           1. Absolute Centering: Using transform: translate(-50%, -50%) for perfect alignment.
+           2. Dynamic Scaling: Scale factor calculated via JS to fit any window size.
+           3. CSS-Based Graphics: Removed unreliable external images for logic diagrams.
+        */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        :root {
+            --bg-dark: #020617;
+            --primary-blue: #3b82f6;
+            --secondary-green: #10b981;
+            --accent-blue: #60a5fa;
+            --text-main: #f8fafc;
+            --text-dim: #cbd5e1;
+            --code-bg: #000000;
+            --scale: 1; /* Updated by JS */
+        }
+
+        body {
+            background-color: #0f172a;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            position: relative;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* The Presentation Stage - Locked 16:9 Aspect Ratio */
+        #presentation-stage {
+            width: 1280px;
+            height: 720px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(var(--scale));
+            background-color: var(--bg-dark);
+            overflow: hidden;
+            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8);
+        }
+
+        .slide-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: none; 
+            flex-direction: column;
+            padding: 60px;
+        }
+
+        .slide-container.active {
+            display: flex;
+            z-index: 10;
+        }
+
+        /* Background Ambient Glows */
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: -10%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+            z-index: 0;
+            border-radius: 50%;
+        }
+
+        /* Typography */
+        h1, h2, h3 { font-family: 'Urbanist', sans-serif; margin: 0; }
+        h1 { font-size: 80px; line-height: 1.1; font-weight: 700; color: #f1f5f9; }
+        .slide-title { font-size: 44px; color: var(--primary-blue); margin-bottom: 35px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+        p, li { font-size: 22px; line-height: 1.6; color: var(--text-dim); }
+        .code-font { font-family: 'JetBrains Mono', monospace; }
+        
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; }
+
+        /* Layout Modules */
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; width: 100%; align-items: center; }
+        .tile { background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(59, 130, 246, 0.2); padding: 35px; border-radius: 24px; flex: 1; }
+        .tile h3 { font-size: 26px; margin-bottom: 15px; color: var(--accent-blue); }
+
+        /* Tables */
+        .table-layout table { width: 100%; border-collapse: collapse; background: rgba(15, 23, 42, 0.5); border-radius: 12px; overflow: hidden; }
+        .table-layout th { background: #1e293b; padding: 18px; text-align: left; color: var(--accent-blue); font-size: 22px; }
+        .table-layout td { padding: 15px 18px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 19px; }
+
+        /* Graphics & Code Boxes */
+        .code-box { background: var(--code-bg); padding: 25px; border-radius: 16px; border-left: 6px solid var(--primary-blue); font-size: 16px; line-height: 1.4; }
+        .lark-rule { color: var(--accent-blue); }
+        .lark-keyword { color: #f472b6; font-weight: bold; }
+        .lark-string { color: var(--secondary-green); }
+
+        /* Visual Pipeline Graphic for Preprocessing */
+        .pipeline-graphic { display: flex; align-items: center; gap: 15px; margin-top: 20px; }
+        .pipeline-step { background: #1e293b; border: 2px solid var(--primary-blue); padding: 15px; border-radius: 10px; text-align: center; font-size: 14px; font-weight: bold; color: var(--accent-blue); flex: 1; }
+        .pipeline-arrow { color: var(--primary-blue); font-size: 20px; }
+
+        .bullet-list ul { list-style: none; padding: 0; }
+        .bullet-list li { position: relative; padding-left: 45px; margin-bottom: 20px; }
+        .bullet-list li::before { content: '\f058'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; left: 0; color: var(--primary-blue); font-size: 24px; }
+
+        #slide-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #475569;
+            font-size: 14px;
+            z-index: 1000;
+        }
+
+        /* Print Settings */
+        @media print {
+            body { background: white; overflow: visible; }
+            #presentation-stage { transform: none !important; position: relative !important; width: 1280px !important; height: auto !important; left: 0; top: 0; }
+            .slide-container { display: flex !important; position: relative !important; page-break-after: always !important; }
+            #slide-counter { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-stage">
+    <!-- Slide 1: Title -->
+    <div class="slide-container active">
+        <div class="content-area">
+            <div style="width: 100px; height: 10px; background: var(--primary-blue); margin-bottom: 30px;"></div>
+            <h1>JCL Analysis &<br><span style="color:var(--primary-blue);">Extraction Engine</span></h1>
+            <p style="font-size: 32px; margin-top: 20px; font-weight: 300;">Legacy Deconstruction for Modern Build Engines</p>
+            <p style="margin-top: 100px; opacity: 0.6; letter-spacing: 2px; text-transform: uppercase; font-size: 14px;">Automation & Intelligence Framework</p>
+        </div>
+    </div>
+
+    <!-- Slide 2: Workflow -->
+    <div class="slide-container">
+        <h2 class="slide-title">Extraction Workflow</h2>
+        <div class="content-area">
+            <div style="display: flex; gap: 30px;">
+                <div class="tile">
+                    <i class="fa-solid fa-microchip" style="font-size: 40px; color: var(--primary-blue); margin-bottom: 20px;"></i>
+                    <h3>Preprocessing</h3>
+                    <p>Cleaning, recursive expansion of PROCs/INCLUDES, and variable resolution.</p>
+                </div>
+                <div class="tile">
+                    <i class="fa-solid fa-code-branch" style="font-size: 40px; color: var(--primary-blue); margin-bottom: 20px;"></i>
+                    <h3>Lark Parsing</h3>
+                    <p>Application of LALR grammar to convert JCL text into structured execution objects.</p>
+                </div>
+                <div class="tile">
+                    <i class="fa-solid fa-database" style="font-size: 40px; color: var(--primary-blue); margin-bottom: 20px;"></i>
+                    <h3>Persistence</h3>
+                    <p>Programmatic insert into PostgreSQL with precise relational ordering logic.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Stage 1: Preprocessing -->
+    <div class="slide-container">
+        <h2 class="slide-title">Stage 1: Preprocessing</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="bullet-list">
+                    <ul>
+                        <li><strong>Sanitization:</strong> Stripping sequence areas (73-80) and removing JCL comments.</li>
+                        <li><strong>Logical Reconstruction:</strong> Handling multi-line continuations and trailing comment stripping.</li>
+                        <li><strong>Expansion:</strong> Recursive resolution of library members and procedures.</li>
+                        <li><strong>Substitution:</strong> Applying hierarchical symbol rules (SET &rarr; PROC &rarr; EXEC).</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="text-align:center;">Transformation Logic</h3>
+                    <div class="pipeline-graphic">
+                        <div class="pipeline-step">RAW JCL</div>
+                        <div class="pipeline-arrow">&rarr;</div>
+                        <div class="pipeline-step">CLEAN</div>
+                        <div class="pipeline-arrow">&rarr;</div>
+                        <div class="pipeline-step">EXPAND</div>
+                        <div class="pipeline-arrow">&rarr;</div>
+                        <div class="pipeline-step">RESOLVE</div>
+                    </div>
+                    <p style="margin-top: 30px; font-size: 16px; color: var(--text-dim); text-align: center;">
+                        Produces a "Sanitized Execution Stream" ready for the grammar engine.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Grammar Theory -->
+    <div class="slide-container">
+        <h2 class="slide-title">Stage 2: Lark LALR Grammar</h2>
+        <div class="content-area">
+            <div class="tile" style="max-width: 950px; margin: 0 auto;">
+                <h3 style="text-align: center;">Solving JCL Ambiguities</h3>
+                <ul class="bullet-list" style="margin-top: 30px;">
+                    <li><strong>Opcode Priority:</strong> Terminal priorities ensure commands (DD, EXEC) are identified before labels to support unnamed concatenations.</li>
+                    <li><strong>Greedy Keywords:</strong> Isolation of DSN, DISP, and DCB keywords from complex values.</li>
+                    <li><strong>GDG Handling:</strong> Grammar native support for relative generations: <code>(+1), (-1)</code>.</li>
+                    <li><strong>Context Scoping:</strong> Mapping line-level data to the active execution step.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: Grammar In Action -->
+    <div class="slide-container">
+        <h2 class="slide-title">Grammar In Action</h2>
+        <div class="content-area">
+            <div style="margin-bottom: 25px;">
+                <p style="color: var(--primary-blue); margin-bottom: 10px; font-weight: 700; text-transform: uppercase; font-size: 14px;">Target JCL Statement:</p>
+                <div class="code-box code-font" style="color: var(--secondary-green); font-size: 24px;">
+                    //MYDD DD DISP=SHR,DSN=FRED.ETHEL.LUCY
+                </div>
+            </div>
+            <div class="two-column" style="align-items: stretch; gap: 30px;">
+                <div>
+                    <p style="color: var(--text-dim); margin-bottom: 10px; font-size: 16px;">Implemented Lark Rules:</p>
+                    <div class="code-box code-font" style="font-size: 14px; line-height: 1.3;">
+                        <span class="lark-rule">dd_statement</span>: "//" JCL_ID OP_DD <span class="lark-rule">dd_params</span><br>
+                        <span class="lark-rule">dd_params</span>: <span class="lark-rule">dd_param</span> ("," <span class="lark-rule">dd_param</span>)*<br>
+                        <span class="lark-rule">?dd_param</span>: <span class="lark-rule">dsn_param</span> | <span class="lark-rule">disp_param</span> | ...<br>
+                        <span class="lark-rule">?dsn_param</span>: <span class="lark-keyword">DSN_KW</span> EQ <span class="lark-rule">dsn_value</span><br>
+                        <span class="lark-rule">?dsn_value</span>: VALUE [<span class="lark-rule">gdg_suffix</span>]<br>
+                        <span class="lark-rule">disp_param</span>: <span class="lark-keyword">DISP_KW</span> EQ <span class="lark-rule">DISP_VAL</span><br><br>
+                        <span class="lark-keyword">DSN_KW.3</span>: "DSN" | "DSNAME"<br>
+                        <span class="lark-keyword">DISP_KW.3</span>: "DISP"
+                    </div>
+                </div>
+                <div>
+                    <p style="color: var(--text-dim); margin-bottom: 10px; font-size: 16px;">Structured Transformer Output:</p>
+                    <div class="code-box code-font" style="color: #fda4af; font-size: 18px;">
+                        {<br>
+                        &nbsp;&nbsp;"type": "DD",<br>
+                        &nbsp;&nbsp;"label": "MYDD",<br>
+                        &nbsp;&nbsp;"params": {<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;"DISP": ["SHR"],<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;"DSN": "FRED.ETHEL.LUCY"<br>
+                        &nbsp;&nbsp;}<br>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: Database Logic -->
+    <div class="slide-container">
+        <h2 class="slide-title">Relational Logic</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="tile">
+                    <h3>Multi-Project Scoping</h3>
+                    <p>Manual ID management ensures distinct job runs can coexist:</p>
+                    <ul class="bullet-list" style="margin-top: 15px; font-size: 18px;">
+                        <li><strong>Step ID:</strong> Manual increment per Project.</li>
+                        <li><strong>DS ID:</strong> Resets to 1 at every Step start.</li>
+                        <li><strong>Composite PK:</strong> (proj_id + step_id + ds_id).</li>
+                    </ul>
+                </div>
+                <div class="tile">
+                    <h3>DSN Normalization</h3>
+                    <p>Automatic labeling for virtual files:</p>
+                    <ul class="bullet-list" style="margin-top: 15px; font-size: 18px;">
+                        <li><strong>(dummy):</strong> For DUMMY or NULLFILE.</li>
+                        <li><strong>(input stream):</strong> For SYSIN payloads.</li>
+                        <li><strong>(output stream):</strong> For SYSOUT classes.</li>
+                        <li><strong>(work_ds):</strong> For temporary utility files.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: Concatenation -->
+    <div class="slide-container">
+        <h2 class="slide-title">Concatenation Persistence</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="bullet-list">
+                    <ul>
+                        <li><strong>Inheritance:</strong> Unnamed DD statements automatically inherit the DDNAME from the preceding entry.</li>
+                        <li><strong>Sequence:</strong> The <code>allocation_offset</code> column (1, 2, 3...) preserves absolute search order.</li>
+                        <li><strong>Recovery:</strong> Enables full reconstruction of search paths using standard SQL ordering.</li>
+                    </ul>
+                </div>
+                <div class="code-box code-font" style="color: var(--primary-blue);">
+                    SELECT dsn FROM DATA_ALLOCATIONS<br>
+                    WHERE project_name = 'MIGRATE_01'<br>
+                    ORDER BY step_id, ds_id, offset;
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Live Demo -->
+    <div class="slide-container">
+        <div class="content-area" style="text-align: center;">
+            <h2 style="font-size: 80px; margin-bottom: 20px;">Questions?</h2>
+            <div style="width: 200px; height: 6px; background: var(--primary-blue); margin: 40px auto;"></div>
+            <p style="font-size: 38px; color: var(--text-main);">Demo Session: System Walkthrough</p>
+            <div style="display: flex; justify-content: center; gap: 60px; margin-top: 60px; font-size: 24px;">
+                <span><i class="fa-solid fa-code" style="color:var(--primary-blue);"></i> Python Parser</span>
+                <span><i class="fa-solid fa-database" style="color:var(--primary-blue);"></i> SQL Extraction</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="slide-counter">1 / 8</div>
+
+<script>
+    const stage = document.getElementById('presentation-stage');
+    const slides = document.querySelectorAll('.slide-container');
+    const counter = document.getElementById('slide-counter');
+    let currentSlide = 0;
+
+    // RESPONSIVE SCALING ENGINE
+    function scaleStage() {
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+        
+        // Calculate scale to fit either width or height
+        const scaleW = winW / 1280;
+        const scaleH = winH / 720;
+        const scaleFactor = Math.min(scaleW, scaleH) * 0.98; // 2% safety buffer
+        
+        document.documentElement.style.setProperty('--scale', scaleFactor);
+    }
+
+    function updateSlide() {
+        slides.forEach((slide, index) => {
+            slide.classList.toggle('active', index === currentSlide);
+        });
+        counter.textContent = `${currentSlide + 1} / ${slides.length}`;
+    }
+
+    // Initialize scaling and navigation
+    window.addEventListener('resize', scaleStage);
+    scaleStage();
+
+    document.addEventListener('keydown', (e) => {
+        if (['ArrowRight', 'ArrowDown', ' '].includes(e.key)) {
+            if (currentSlide < slides.length - 1) currentSlide++;
+            updateSlide();
+            if (e.key === ' ') e.preventDefault();
+        } else if (['ArrowLeft', 'ArrowUp'].includes(e.key)) {
+            if (currentSlide > 0) currentSlide--;
+            updateSlide();
+        }
+    });
+
+    document.body.addEventListener('click', (e) => {
+        if (e.target.closest('table, a, button, .code-box')) return;
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            updateSlide();
+        }
+    });
+
+    updateSlide();
+</script>
+
+</body>
+</html>

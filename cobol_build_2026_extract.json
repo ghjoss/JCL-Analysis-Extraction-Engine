@@ -1,0 +1,1812 @@
+{
+  "project_name": "COBOL_BUILD_2026",
+  "extraction_timestamp": null,
+  "steps": [
+    {
+      "step_id": 1,
+      "step_name": "STOPCMND",
+      "program_name": "IKJEFT01",
+      "proc_name": null,
+      "parameters": "STOPCMN D",
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 1,
+          "dsn": "PROD.RRMAC.PROD.CEXEC",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 2,
+          "dsn": "PROD.RRMAC.PROD.LICENSE",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "SYSTSPRT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "SYSTSIN",
+          "allocation_offset": 1,
+          "dsn": "(dummy)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": true,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 5,
+          "dd_name": "LOG",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 2,
+      "step_name": "BACKUPD",
+      "program_name": "IEFBR14",
+      "proc_name": null,
+      "parameters": "BACKUP",
+      "cond_logic": null,
+      "data_allocations": []
+    },
+    {
+      "step_id": 3,
+      "step_name": "IDCAMSD",
+      "program_name": "IEFBR14",
+      "proc_name": null,
+      "parameters": null,
+      "cond_logic": null,
+      "data_allocations": []
+    },
+    {
+      "step_id": 4,
+      "step_name": "LONGDMYD",
+      "program_name": "IEBGENER",
+      "proc_name": null,
+      "parameters": null,
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSPRINT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSUT1",
+          "allocation_offset": 1,
+          "dsn": "(input stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "DUMMY",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "SYSUT2",
+          "allocation_offset": 1,
+          "dsn": "&&LONGDMY",
+          "disposition": {
+            "status": "",
+            "normal": "PASS",
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": "512",
+            "blksize": null,
+            "recfm": "F",
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "SYSIN",
+          "allocation_offset": 1,
+          "dsn": "(input stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "     GENERATE MAXFLDS=1\n     RECORD   FIELD=(512,1,,1)",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 5,
+      "step_name": "DEFINE",
+      "program_name": "IDCAMS",
+      "proc_name": null,
+      "parameters": null,
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSPRINT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "CMNRECV",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.CMNRECV",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "CMNRQSAM",
+          "allocation_offset": 1,
+          "dsn": "&&RECV",
+          "disposition": {
+            "status": "",
+            "normal": "PASS",
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": "5000",
+            "blksize": "0",
+            "recfm": "VB",
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "LONGDMY",
+          "allocation_offset": 1,
+          "dsn": "&&LONGDMY",
+          "disposition": {
+            "status": "OLD",
+            "normal": "DELETE",
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 5,
+          "dd_name": "CMNSQSAM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.BACKUP.CMNSVSM(0)",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 6,
+          "dd_name": "CMNOQSAM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.BACKUP.CMNSVOM(0)",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 7,
+          "dd_name": "CMNDQSAM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.BACKUP.CMNSVDM(0)",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 8,
+          "dd_name": "CMNAQSAM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.BACKUP.CMNSVAM(0)",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 9,
+          "dd_name": "DUMMY",
+          "allocation_offset": 1,
+          "dsn": "(input stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "DUMMY RECORD",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 10,
+          "dd_name": "SYSIN",
+          "allocation_offset": 1,
+          "dsn": "(input stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": " DELETE PROD.CMN.CMND.CMNPMAST\n DELETE PROD.CMN.CMND.CMNCMPNT\n DELETE PROD.CMN.CMND.CMNCMPNL\n DELETE PROD.CMN.CMND.CMNSVSM\n DELETE PROD.CMN.CMND.CMNSVOM\n DELETE PROD.CMN.CMND.CMNSVDM\n DELETE PROD.CMN.CMND.CMNSVAM\n SET MAXCC = 0\n /*\n /* Delete, Define, and Initialize the Package/Component Masters.\n /*\n DEFINE CLUSTER (NAME(PROD.CMN.CMND.CMNPMAST)                  +\n   RECORDSIZE(150,4096) UNIQUE INDEXED KEYS(12,0)              +\n   FREESPACE(20 20)                                            +\n   SHAREOPTIONS(2,3))                                          +\n  DATA(NAME(PROD.CMN.CMND.CMNPMAST.DATA)                       +\n   CYLINDERS(200,50)                                           +\n   CISZ(32768))                                                +\n  INDEX(NAME(PROD.CMN.CMND.CMNPMAST.INDEX)                     +\n   CYLINDERS(1,1)                                              +\n   CISZ(2048))\n REPRO IFILE(DUMMY)    ODS(PROD.CMN.CMND.CMNPMAST)\n DEFINE CLUSTER (NAME(PROD.CMN.CMND.CMNCMPNT)                  +\n   RECORDSIZE(150,4096) UNIQUE INDEXED KEYS(22,0)              +\n   FREESPACE(20 20)                                            +\n   SHAREOPTIONS(2,3))                                          +\n  DATA(NAME(PROD.CMN.CMND.CMNCMPNT.DATA)                       +\n   CYLINDERS(50,25)                                            +\n   CISZ(32768))                                                +\n  INDEX(NAME(PROD.CMN.CMND.CMNCMPNT.INDEX)                     +\n   CYLINDERS(1,1)                                              +\n   CISZ(2048))\n  REPRO IFILE(DUMMY) +\n    ODS(PROD.CMN.CMND.CMNCMPNT)\n DEFINE CLUSTER (NAME(PROD.CMN.CMND.CMNCMPNL)                  +\n   RECORDSIZE(400,4096) UNIQUE INDEXED KEYS(255,0)             +\n   FREESPACE(20 20)                                            +\n   SHAREOPTIONS(2,3))                                          +\n  DATA(NAME(PROD.CMN.CMND.CMNCMPNL.DATA)                       +\n   CYLINDERS(10,10)                                            +\n   CISZ(32768))                                                +\n  INDEX(NAME(PROD.CMN.CMND.CMNCMPNL.INDEX)                     +\n   CYLINDERS(1,1)                                              +\n   CISZ(2048))\n  REPRO IFILE(LONGDMY) +\n    ODS(PROD.CMN.CMND.CMNCMPNL)\n /*\n /* SITE MASTER\n /*\n DEFINE CLUSTER (NAME(PROD.CMN.CMND.CMNSVSM)                   +\n   RECORDSIZE(12288 20200) KEYS(55 0)                          +\n   FREESPACE(10 10)                                            +\n   SHAREOPTIONS(2 3))                                          +\n  DATA(NAME(PROD.CMN.CMND.CMNSVSM.DATA)                        +\n   CYLINDERS(20,20)                                            +\n   CISZ(4096))                                                 +\n  INDEX(NAME(PROD.CMN.CMND.CMNSVSM.INDEX)                      +\n   CYLINDERS(1,1)                                              +\n   CISZ(2048))\n REPRO IFILE(CMNSQSAM) ODS(PROD.CMN.CMND.CMNSVSM)\n /*\n /* OBJECT MASTER\n /*\n DEFINE CLUSTER (NAME(PROD.CMN.CMND.CMNSVOM)                   +\n   RECORDSIZE(200 4089) KEYS(75 0)                             +\n   FREESPACE(10 10)                                            +\n   SHAREOPTIONS(2 3))                                          +\n  DATA(NAME(PROD.CMN.CMND.CMNSVOM.DATA)                        +\n   CYLINDERS(20,20)                                            +\n   CISZ(4096))                                                 +\n  INDEX(NAME(PROD.CMN.CMND.CMNSVOM.INDEX)                      +\n   CYLINDERS(1,1)                                              +\n   CISZ(2048))\n REPRO IFILE(CMNOQSAM) ODS(PROD.CMN.CMND.CMNSVOM)\n /*\n /* DELTA  MASTER\n /*\n DEFINE CLUSTER (NAME(PROD.CMN.CMND.CMNSVDM)                   +\n   RECORDSIZE(12288 22524) KEYS(12 0)                          +\n   FREESPACE(10 10)                                            +\n   SHAREOPTIONS(2 3))                                          +\n  DATA(NAME(PROD.CMN.CMND.CMNSVDM.DATA)                        +\n   CYLINDERS(10,10))                                           +\n  INDEX(NAME(PROD.CMN.CMND.CMNSVDM.INDEX)                      +\n   CYLINDERS(1,1)                                              +\n   CISZ(1024))\n REPRO IFILE(CMNDQSAM) ODS(PROD.CMN.CMND.CMNSVDM)\n /*\n /* ARCHIVE  MASTER\n /*\n DEFINE CLUSTER (NAME(PROD.CMN.CMND.CMNSVAM)                   +\n   RECORDSIZE(3700 22576) KEYS(64 0)                           +\n   FREESPACE(10 10)                                            +\n   SHAREOPTIONS(2 3))                                          +\n  DATA(NAME(PROD.CMN.CMND.CMNSVAM.DATA)                        +\n   CYLINDERS(10,10))                                           +\n  INDEX(NAME(PROD.CMN.CMND.CMNSVAM.INDEX)                      +\n   CYLINDERS(1,1)                                              +\n   CISZ(1024))\n REPRO IFILE(CMNAQSAM) ODS(PROD.CMN.CMND.CMNSVAM)\n /*\n /* Copy the recovery file\n /*\n REPRO IFILE(CMNRECV) OFILE(CMNRQSAM)",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 6,
+      "step_name": "PMASTD",
+      "program_name": "CMNVINIT",
+      "proc_name": null,
+      "parameters": null,
+      "cond_logic": "['4', 'LT']",
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "CMNVSAM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.CMNPMAST",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 7,
+      "step_name": "SHORTD",
+      "program_name": "CMNVINIT",
+      "proc_name": null,
+      "parameters": null,
+      "cond_logic": "['4', 'LT']",
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "CMNVSAM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.CMNCMPNT",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 8,
+      "step_name": "LONGD",
+      "program_name": "CMNVINIT",
+      "proc_name": null,
+      "parameters": null,
+      "cond_logic": "['4', 'LT']",
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "CMNVSAM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.CMNCMPNL",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 9,
+      "step_name": "RESTRD",
+      "program_name": "CMNBKRST",
+      "proc_name": null,
+      "parameters": "RESTORE",
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSPRINT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSOUT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "SYSUDUMP",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "CMNPMAST",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.CMNPMAST",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 5,
+          "dd_name": "CMNPQSAM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.BACKUP.CMNPMAST(0)",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 6,
+          "dd_name": "CMNCMPNT",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.CMNCMPNT",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 7,
+          "dd_name": "CMNCSQSM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.BACKUP.CMNCMPNT(0)",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 8,
+          "dd_name": "CMNCMPNL",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.CMNCMPNL",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 9,
+          "dd_name": "CMNCLQSM",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.BACKUP.CMNCMPNL(0)",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 10,
+          "dd_name": "CMNRQSAM",
+          "allocation_offset": 1,
+          "dsn": "&&RECV",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 11,
+          "dd_name": "SORTSTAT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 12,
+          "dd_name": "SORTWK01",
+          "allocation_offset": 1,
+          "dsn": "(work_ds)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 13,
+          "dd_name": "SORTWK02",
+          "allocation_offset": 1,
+          "dsn": "(work_ds)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 14,
+          "dd_name": "SORTWK03",
+          "allocation_offset": 1,
+          "dsn": "(work_ds)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 15,
+          "dd_name": "SORTWK04",
+          "allocation_offset": 1,
+          "dsn": "(work_ds)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 10,
+      "step_name": "ICADMD",
+      "program_name": "DSNUTILB",
+      "proc_name": null,
+      "parameters": "DB2A,ICADMD",
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSUT1",
+          "allocation_offset": 1,
+          "dsn": "(work_ds)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSPRINT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "UTPRINT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "DB2ADM01",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.BACKUP.ZMFDB201(1)",
+          "disposition": {
+            "status": "",
+            "normal": "CATLG",
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 5,
+          "dd_name": "DB2ADM02",
+          "allocation_offset": 1,
+          "dsn": "PROD.CMN.CMND.BACKUP.ZMFDB202(1)",
+          "disposition": {
+            "status": "",
+            "normal": "CATLG",
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 6,
+          "dd_name": "SYSIN",
+          "allocation_offset": 1,
+          "dsn": "(input stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": " COPY TABLESPACE CMNDADM.CMNDASP1 COPYDDN DB2ADM01\n COPY TABLESPACE CMNDADM.CMNDASP2 COPYDDN DB2ADM02",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 11,
+      "step_name": "STRTCMND",
+      "program_name": "IKJEFT01",
+      "proc_name": null,
+      "parameters": "STRTCMN D",
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 1,
+          "dsn": "PROD.RRMAC.PROD.CEXEC",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 2,
+          "dsn": "PROD.RRMAC.LICENSE",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "SYSTSPRT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "SYSTSIN",
+          "allocation_offset": 1,
+          "dsn": "(dummy)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": true,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 5,
+          "dd_name": "LOG",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 12,
+      "step_name": "DELDSNS",
+      "program_name": "IEFBR14",
+      "proc_name": null,
+      "parameters": null,
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "DELOK",
+          "allocation_offset": 1,
+          "dsn": "TEST.TRANSACT.D21257.T122910.OK",
+          "disposition": {
+            "status": "MOD",
+            "normal": "DELETE",
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "DELBAD",
+          "allocation_offset": 1,
+          "dsn": "TEST.TRANSACT.D21257.T122910.BAD",
+          "disposition": {
+            "status": "MOD",
+            "normal": "DELETE",
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 13,
+      "step_name": "JOBJCL",
+      "program_name": "IKJEFT01",
+      "proc_name": null,
+      "parameters": "JOBJCL <WAITTIME>10 <LOG>F",
+      "cond_logic": "EVEN",
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSTSPRT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSTSIN",
+          "allocation_offset": 1,
+          "dsn": "(dummy)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": true,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "LOG",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "JOBCARD",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 5,
+          "dd_name": "CONTROL",
+          "allocation_offset": 1,
+          "dsn": "(input stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "STOPCMND.*.LOG\n*.*.SYSPRINT\nICADMIN.*.UTPRINT\nSTRTCMND.*.LOG",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 6,
+          "dd_name": "JESOUT",
+          "allocation_offset": 1,
+          "dsn": "&&JESOUT",
+          "disposition": {
+            "status": "",
+            "normal": "PASS",
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": "133",
+            "blksize": "0",
+            "recfm": "FBA",
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 7,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 1,
+          "dsn": "PROD.RRMAC.PROD.CEXEC",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 8,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 2,
+          "dsn": "PROD.RRMAC.LICENSE",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 14,
+      "step_name": "GOOD",
+      "program_name": "IEBGENER",
+      "proc_name": null,
+      "parameters": null,
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSIN",
+          "allocation_offset": 1,
+          "dsn": "(dummy)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": true,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSPRINT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "SYSUT1",
+          "allocation_offset": 1,
+          "dsn": "&&JESOUT",
+          "disposition": {
+            "status": "OLD",
+            "normal": "DELETE",
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "SYSUT2",
+          "allocation_offset": 1,
+          "dsn": "TEST.TRANSACT.D21257.T122910.OK",
+          "disposition": {
+            "status": "",
+            "normal": "CATLG",
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": "133",
+            "blksize": "0",
+            "recfm": "FB",
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 15,
+      "step_name": "UPDTFLGG",
+      "program_name": "IKJEFT01",
+      "proc_name": null,
+      "parameters": "TRACTFLG 2021-09-14-12.29.12.215352 S",
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSTSPRT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSTSIN",
+          "allocation_offset": 1,
+          "dsn": "(dummy)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": true,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "LOG",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "CONTROL",
+          "allocation_offset": 1,
+          "dsn": "(input stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "<DB2SYS>DB2A\n<TABLEHLQ>TRNACT1\n<FUNCTION>SETFLAG_AND_DECREMENT",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 5,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 1,
+          "dsn": "PROD.RRMAC.PROD.CEXEC",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 6,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 2,
+          "dsn": "PROD.RRMAC.LICENSE",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 16,
+      "step_name": "BAD",
+      "program_name": "IEBGENER",
+      "proc_name": null,
+      "parameters": null,
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSIN",
+          "allocation_offset": 1,
+          "dsn": "(dummy)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": true,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSPRINT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "SYSUT1",
+          "allocation_offset": 1,
+          "dsn": "&&JESOUT",
+          "disposition": {
+            "status": "OLD",
+            "normal": "DELETE",
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "SYSUT2",
+          "allocation_offset": 1,
+          "dsn": "TEST.TRANSACT.D21257.T122910.BAD",
+          "disposition": {
+            "status": "",
+            "normal": "CATLG",
+            "abnormal": null
+          },
+          "unit": "SYSALLDA",
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": "133",
+            "blksize": "0",
+            "recfm": "FB",
+            "extra": {}
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 17,
+      "step_name": "UPDTFLGB",
+      "program_name": "IKJEFT01",
+      "proc_name": null,
+      "parameters": "TRACTFLG 2021-09-14-12.29.12.215352 F",
+      "cond_logic": null,
+      "data_allocations": [
+        {
+          "ds_id": 1,
+          "dd_name": "SYSTSPRT",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 2,
+          "dd_name": "SYSTSIN",
+          "allocation_offset": 1,
+          "dsn": "(dummy)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": true,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 3,
+          "dd_name": "LOG",
+          "allocation_offset": 1,
+          "dsn": "(output stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 4,
+          "dd_name": "CONTROL",
+          "allocation_offset": 1,
+          "dsn": "(input stream)",
+          "disposition": {
+            "status": null,
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "<DB2SYS>DB2&CMSYS\n<TABLEHLQ>TRNACT1\n<FUNCTION>SETFLAG_AND_DECREMENT",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 5,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 1,
+          "dsn": "PROD.RRMAC.PROD.CEXEC",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        },
+        {
+          "ds_id": 6,
+          "dd_name": "SYSEXEC",
+          "allocation_offset": 2,
+          "dsn": "PROD.RRMAC.LICENSE",
+          "disposition": {
+            "status": "SHR",
+            "normal": null,
+            "abnormal": null
+          },
+          "unit": null,
+          "vol_ser": null,
+          "is_dummy": false,
+          "instream_payload": "",
+          "technical_attributes": {
+            "lrecl": null,
+            "blksize": null,
+            "recfm": null,
+            "extra": {}
+          }
+        }
+      ]
+    }
+  ]
+}
