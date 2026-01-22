@@ -4,7 +4,6 @@ import json
 import copy
 import psycopg2
 from psycopg2.extras import Json
-
 from lark import Lark, Transformer, v_args
 
 # =============================================================================
@@ -264,7 +263,6 @@ JCL_GRAMMAR = r"""
     keyword_param: KEYWORD EQ (VALUE | JCL_QUOTED_STRING | list_val)
     list_val: "(" (VALUE|JCL_QUOTED_STRING) ("," (VALUE|JCL_QUOTED_STRING))* ")"
 
-    # Terminals
     OP_EXEC.4: "EXEC"
     OP_DD.4: "DD"
     EQ: "="
@@ -402,20 +400,22 @@ class DatabaseManager:
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS STEPS (
-                step_id SERIAL PRIMARY KEY,
                 project_id INTEGER NOT NULL REFERENCES PROJECTS(project_id),
+                step_id INTEGER NOT NULL,
                 step_name VARCHAR(8),
                 proc_step_name VARCHAR(8),
                 program_name VARCHAR(8),
                 proc_name VARCHAR(8),
                 parameters TEXT,
-                cond_logic TEXT
+                cond_logic TEXT,
+                PRIMARY KEY (project_id, step_id)
             );
             CREATE TABLE IF NOT EXISTS DATA_ALLOCATIONS (
-                ds_id SERIAL PRIMARY KEY,
-                project_id INTEGER NOT NULL REFERENCES PROJECTS(project_id),
-                step_id INTEGER NOT NULL REFERENCES STEPS(step_id),
-                dd_name VARCHAR(8),
+                project_id INTEGER NOT NULL,
+                step_id INTEGER NOT NULL,
+                ds_id INTEGER NOT NULL,
+                dd_name VARCHAR(8) NOT NULL,
+                allocation_offset INTEGER NOT NULL DEFAULT 1,
                 dsn VARCHAR(44),
                 disp_status VARCHAR(8),
                 disp_normal_term VARCHAR(8),
@@ -427,10 +427,12 @@ class DatabaseManager:
                 lrecl VARCHAR(10),
                 blksize VARCHAR(10),
                 recfm VARCHAR(8),
-                dcb_attributes JSONB
+                dcb_attributes JSONB,
+                PRIMARY KEY (project_id, step_id, ds_id),
+                FOREIGN KEY (project_id, step_id) REFERENCES STEPS(project_id, step_id)
             );
             CREATE INDEX IF NOT EXISTS idx_steps_project ON STEPS(project_id);
-            CREATE INDEX IF NOT EXISTS idx_dd_step ON DATA_ALLOCATIONS(step_id);
+            CREATE INDEX IF NOT EXISTS idx_dd_step ON DATA_ALLOCATIONS(project_id, step_id);
             """)
         self.conn.commit()
 
@@ -449,61 +451,84 @@ class DatabaseManager:
                 cursor.execute("SELECT project_id FROM PROJECTS WHERE project_name = %s", (project_name,))
                 project_id = cursor.fetchone()[0]
 
+            # Manual step_id increment logic within the project scope
+            cursor.execute("SELECT COALESCE(MAX(step_id), 0) FROM STEPS WHERE project_id = %s", (project_id,))
+            step_id_counter = cursor.fetchone()[0]
+
             for step in structured_data:
+                step_id_counter += 1
                 info = step['step_info']
                 params = info['params']
+                
                 cursor.execute("""
-                    INSERT INTO STEPS (project_id, step_name, program_name, proc_name, parameters, cond_logic)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    RETURNING step_id
+                    INSERT INTO STEPS (project_id, step_id, step_name, program_name, proc_name, parameters, cond_logic)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """, (
-                    project_id, info.get('label'), params.get('PGM'), params.get('PROC'),
+                    project_id, step_id_counter, info.get('label'), params.get('PGM'), params.get('PROC'),
                     params.get('PARM'), params.get('COND')
                 ))
-                step_id = cursor.fetchone()[0]
+
+                last_dd_name = None
+                allocation_offset = 0
+                ds_id_counter = 0
 
                 for dd in step['dds']:
-                    dd_params = dd['params']
-                    disp = dd_params.get('DISP', [])
+                    ds_id_counter += 1
+                    current_label = dd.get('label')
                     
+                    if current_label:
+                        last_dd_name = current_label
+                        allocation_offset = 1
+                    else:
+                        allocation_offset += 1
+
+                    dd_params = dd['params']
+                    
+                    # DSN Mapping Logic: DUMMY > INSTREAM > SYSOUT > Standard > Fallback (Work)
+                    dsn = dd_params.get('DSN')
+                    if dd_params.get('DUMMY'):
+                        dsn = "(dummy)"
+                    elif dd_params.get('INSTREAM'):
+                        dsn = "(input stream)"
+                    elif 'SYSOUT' in dd_params:
+                        dsn = "(output stream)"
+                    
+                    if dsn is None:
+                        dsn = "(work_ds)"
+
+                    disp = dd_params.get('DISP', [])
                     status = disp[0] if len(disp) > 0 else None
                     normal = disp[1] if len(disp) > 1 else None
                     abnormal = disp[2] if len(disp) > 2 else None
 
-                    # 1. Start with values from standalone parameters
                     lrecl = dd_params.get('LRECL')
                     recfm = dd_params.get('RECFM')
                     blksize = dd_params.get('BLKSIZE')
                     
-                    # 2. Extract from DCB sub-parameter list if it's a dictionary
                     dcb_val = dd_params.get('DCB')
                     extra_dcb_attrs = {}
 
                     if isinstance(dcb_val, dict):
-                        # Merge if not already set by standalone params
                         lrecl = lrecl or dcb_val.get('LRECL')
                         recfm = recfm or dcb_val.get('RECFM')
                         blksize = blksize or dcb_val.get('BLKSIZE')
-                        
-                        # Store everything else (like DSORG, BUFNO) in the JSONB
                         for k, v in dcb_val.items():
                             if k not in ('LRECL', 'RECFM', 'BLKSIZE'):
                                 extra_dcb_attrs[k] = v
                     elif dcb_val:
-                        # Handle cases where DCB is a simple string (referback or model DSCB)
                         extra_dcb_attrs['raw_dcb_ref'] = dcb_val
 
                     cursor.execute("""
                         INSERT INTO DATA_ALLOCATIONS (
-                            project_id, step_id, dd_name, dsn, disp_status, disp_normal_term, disp_abnormal_term, 
-                            unit, vol_ser, is_dummy, instream_ref, lrecl, blksize, recfm, dcb_attributes
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            project_id, step_id, ds_id, dd_name, allocation_offset, dsn, disp_status, 
+                            disp_normal_term, disp_abnormal_term, unit, vol_ser, is_dummy, 
+                            instream_ref, lrecl, blksize, recfm, dcb_attributes
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
-                        project_id, step_id, dd.get('label'), dd_params.get('DSN'),
+                        project_id, step_id_counter, ds_id_counter, last_dd_name, allocation_offset, dsn,
                         status, normal, abnormal, dd_params.get('UNIT'), dd_params.get('VOL'),
                         bool(dd_params.get('DUMMY')), "\n".join(dd.get('payload', [])),
-                        lrecl, blksize, recfm,
-                        Json(extra_dcb_attrs)
+                        lrecl, blksize, recfm, Json(extra_dcb_attrs)
                     ))
         self.conn.commit()
         print(f"Postgres update complete for '{project_name}'.")
@@ -514,18 +539,14 @@ class DatabaseManager:
 
 if __name__ == "__main__":
     CONFIG_FILE = 'config.json'
-    
-
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, 'r') as f:
                 raw_json = f.read()
-                # Basic fix for missing comma if "PROJECT" line lacks it
                 raw_json = re.sub(r'("PROJECT":\s*"[^"]*")\s*("SYSTEM":)', r'\1,\2', raw_json)
                 config = json.loads(raw_json)
             
             project_name = config.get("PROJECT", "DEFAULT_PROJECT")
-            
             database = config.get("DATABASE","jcl_db")
             user = config.get("USER","postgres")
             password = config.get("PASSWORD")
@@ -545,7 +566,6 @@ if __name__ == "__main__":
                 res = pre.preprocess_file(path)
                 manager = JCLParserManager()
                 data = manager.process_results(res)
-                
                 db = DatabaseManager(db_credentials, drop_tables=drop_tables_flag)
                 db.insert_project_data(project_name, data)
             else:
