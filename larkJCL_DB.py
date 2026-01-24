@@ -20,8 +20,11 @@ class JCLPreprocessor:
         lib_val = config.get("LIB", [])
         self.lib_paths = ([path_val] if path_val else []) + (lib_val if isinstance(lib_val, list) else [])
         
+        # Regex patterns for statement identification
         self.re_job_admin = re.compile(r"//([A-Z$#@][A-Z0-9$#@]{0,7})?\s+(JOB|CNTL|ENDCNTL|EXPORT|NOTIFY|OUTPUT|SCHEDULE|JCLLIB|SET)(\s+|$)", re.IGNORECASE)
-        self.re_cond = re.compile(r"//([A-Z$#@][A-Z0-9$#@]{0,7})?\s*(IF|THEN|ELSE|ENDIF)(\s+|$)", re.IGNORECASE)
+        self.re_if = re.compile(r"//([A-Z$#@][A-Z0-9$#@]{0,7})?\s+IF\s+(.*)", re.IGNORECASE)
+        self.re_else = re.compile(r"//([A-Z$#@][A-Z0-9$#@]{0,7})?\s+ELSE", re.IGNORECASE)
+        self.re_endif = re.compile(r"//([A-Z$#@][A-Z0-9$#@]{0,7})?\s+ENDIF", re.IGNORECASE)
         self.re_proc_start = re.compile(r"//([A-Z$#@][A-Z0-9$#@]{0,7})\s+PROC(\s+|$)", re.IGNORECASE)
         self.re_pend = re.compile(r"//\s+PEND(\s+|$)", re.IGNORECASE)
         self.re_include = re.compile(r"//\s+INCLUDE\s+MEMBER=([A-Z$#@][A-Z0-9$#@]{0,7})", re.IGNORECASE)
@@ -51,15 +54,31 @@ class JCLPreprocessor:
         return line
 
     def strip_jcl_comment(self, line, is_continuation):
+        """Modified to allow spaces in IF condition operands."""
+        line_clean = line.rstrip()
         if is_continuation:
-            content = line.lstrip('/')
-            prefix = ""
+            content = line_clean.lstrip('/')
             operands_and_comment = content.lstrip()
+            prefix = ""
         else:
-            parts = line.split(None, 2)
-            if len(parts) < 3: return line.rstrip()
+            parts = line_clean.split(None, 2)
+            if len(parts) < 3: return line_clean
             prefix = " ".join(parts[:2])
             operands_and_comment = parts[2]
+            
+            # Special Handling for IF statement: Don't break on first space
+            if parts[1].upper() == "IF":
+                # Capture everything until ' THEN' or the end of the line
+                then_match = re.search(r"\s+THEN($|\s+)", operands_and_comment, re.IGNORECASE)
+                if then_match:
+                    operands = operands_and_comment[:then_match.start()].strip()
+                    # We return the condition and THEN, stripping comments after THEN
+                    return f"{prefix} {operands} THEN"
+                else:
+                    # No THEN on this line, return whole operands area as part of condition
+                    return f"{prefix} {operands_and_comment.strip()}"
+
+        # Standard logic for EXEC/DD: Comment starts at the first space in operands
         in_quotes = False
         end_idx = len(operands_and_comment)
         for i, char in enumerate(operands_and_comment):
@@ -96,7 +115,7 @@ class JCLPreprocessor:
                     with open(path, 'r') as f:
                         lines = f.readlines()
                         proc_data = {"header": lines[0], "body": lines[1:]}
-                except: pass
+                except Exception: pass
         if not proc_data: return [exec_stmt]
         
         local_symbols = copy.deepcopy(self.symbol_table)
@@ -115,8 +134,6 @@ class JCLPreprocessor:
         self.symbol_table = local_symbols
         expanded = self.process_line_list(proc_data["body"])
         self.symbol_table = old_symbols
-        
-        # Wrap expanded steps with metadata for the parser context
         return [f"*PROC_START* label={outer_label} proc={proc_name}"] + expanded + ["*PROC_END*"]
 
     def process_line_list(self, lines):
@@ -135,6 +152,17 @@ class JCLPreprocessor:
             is_continuing = False
             stmt = self.apply_symbolics(current_statement); current_statement = ""
             
+            # Logic Blocks - Capture expression accurately
+            if self.re_if.search(stmt):
+                m = self.re_if.search(stmt)
+                condition = re.sub(r"\s+THEN$", "", m.group(2).strip(), flags=re.IGNORECASE)
+                statements.append(f"*IF_START* condition='{condition}'")
+                continue
+            if self.re_else.search(stmt):
+                statements.append("*IF_ELSE*"); continue
+            if self.re_endif.search(stmt):
+                statements.append("*IF_END*"); continue
+
             proc_match = self.re_proc_start.search(stmt)
             if proc_match:
                 proc_name, proc_header, proc_body = proc_match.group(1).upper(), stmt, []
@@ -147,9 +175,9 @@ class JCLPreprocessor:
                 self.procedure_map[proc_name] = {"header": proc_header, "body": proc_body}
                 continue
                 
-            if "JCLLIB " in stmt.upper(): self.update_lib_paths(stmt); continue
             if " SET " in stmt.upper() or stmt.startswith("// SET "): self.update_symbols(stmt); continue
-            if self.re_job_admin.search(stmt) or self.re_cond.search(stmt): continue
+            if "JCLLIB " in stmt.upper(): self.update_lib_paths(stmt); continue
+            if self.re_job_admin.search(stmt): continue
             
             include_match = self.re_include.search(stmt)
             if include_match:
@@ -163,7 +191,6 @@ class JCLPreprocessor:
                 name = exec_match.group(3).upper()
                 outer_label = exec_match.group(1) or ""
                 if not is_explicit_pgm and (name in self.procedure_map or self.resolve_path(name)):
-                    # suppressing the original EXEC card as it's not a step, just a call
                     statements.extend(self.expand_procedure(name, stmt, outer_label))
                     continue
             
@@ -310,52 +337,44 @@ class JCLTransformer(Transformer):
     def NUMBER(self, n): return int(n)
     def RECFM_VALUE(self, s): return str(s)
     def JCL_QUOTED_STRING(self, s): return str(s).strip("'").replace("''", "'")
-    
     def _merge_dicts(self, children):
         res = {}; [res.update(c) for c in children if isinstance(c, dict)]; return res
-    
     def gdg_suffix(self, children): return "(" + "".join([str(c) for c in children if c is not None]) + ")"
     def dsn_value(self, children): return "".join([str(c) for c in children if c is not None])
     
-    def exec_statement(self, children): return {"type": "EXEC", "label": children[0], "params": children[-1]}
-    def unnamed_exec(self, children): return {"type": "EXEC", "label": None, "params": children[-1]}
+    def exec_statement(self, children): 
+        return {"type": "EXEC", "label": children[0], "params": self._merge_dicts(children[1:])}
+    def unnamed_exec(self, children): 
+        return {"type": "EXEC", "label": None, "params": self._merge_dicts(children)}
+    
     def dd_statement(self, children): return {"type": "DD", "label": children[0], "params": children[-1]}
     def unnamed_dd(self, children): return {"type": "DD", "label": None, "params": children[-1]}
-    
     def exec_content(self, children): return self._merge_dicts(children)
     def exec_params(self, children): return self._merge_dicts(children)
     def dd_params(self, children): return self._merge_dicts(children)
-    
     def pos_proc(self, children): return {"PROC": str(children[0])}
     def pgm_param(self, children): return {"PGM": str(children[-1])}
     def proc_param_kw(self, children): return {"PROC": str(children[-1])}
     def parm_param(self, children): return {"PARM": str(children[-1])}
     def dsn_param(self, children): return {"DSN": str(children[-1])}
-    
     def disp_param(self, children):
         vals = [str(c) for c in children if str(c) not in ("DISP", "=", "(", ")", ",")]
         return {"DISP": vals}
-    
     def lrecl_param(self, children): return {"LRECL": str(children[-1])}
     def recfm_param(self, children): return {"RECFM": str(children[-1])}
     def blksize_param(self, children): return {"BLKSIZE": str(children[-1])}
     def dsorg_param(self, children): return {"DSORG": str(children[-1])}
-    
     def dcb_sublist(self, children): return self._merge_dicts(children)
     def dcb_param(self, children): return {"DCB": children[-1]}
     def space_quantities(self, children): return "".join([str(c) for c in children if c is not None])
     def space_param(self, children): return {"SPACE": "".join([str(c) for c in children if str(c) not in ("SPACE", "=")])}
-
     def instream_star(self, children): return {"INSTREAM": "*"}
     def instream_data(self, children): return {"INSTREAM": "DATA"}
     def dummy_param(self, children): return {"DUMMY": True}
-    
     def exec_keyword(self, children): return {str(children[0]): str(children[-1])}
     def symbolic_override(self, children): return {str(children[0]): str(children[-1])}
     def keyword_param(self, children): return {str(children[0]): str(children[-1])}
-    def list_val(self, children):
-        items = [str(c) for c in children if str(c) not in ("(", ")", ",")]
-        return items
+    def list_val(self, children): return [str(c) for c in children if str(c) not in ("(", ")", ",")]
 
 class JCLParserManager:
     def __init__(self):
@@ -364,40 +383,55 @@ class JCLParserManager:
         self.current_step = None
     
     def process_results(self, results_list):
-        proc_stack = []
+        proc_stack, if_stack = [], []
         for stmt in results_list:
             if stmt.startswith("*PROC_START*"):
                 m = re.search(r"label=(.*) proc=(.*)", stmt)
                 if m: proc_stack.append({'label': m.group(1), 'proc': m.group(2)})
                 continue
             if stmt.startswith("*PROC_END*"):
-                if proc_stack: proc_stack.pop()
+                if proc_stack: proc_stack.pop(); continue
+            if stmt.startswith("*IF_START*"):
+                m = re.search(r"condition='(.*)'", stmt)
+                if m: if_stack.append({'expr': m.group(1), 'is_else': False})
                 continue
-                
+            if stmt.startswith("*IF_ELSE*"):
+                if if_stack: if_stack[-1]['is_else'] = True; continue
+            if stmt.startswith("*IF_END*"):
+                if if_stack: if_stack.pop(); continue
             if stmt.startswith("*PAYLOAD*"):
                 if self.steps and self.steps[-1]['dds']:
                     last_dd = self.steps[-1]['dds'][-1]
                     if 'payload' not in last_dd: last_dd['payload'] = []
                     last_dd['payload'].append(stmt.replace("*PAYLOAD* ", ""))
                 continue
+
             try:
                 tree = self.parser.parse(stmt)
                 if tree['type'] == 'EXEC':
                     self.current_step = {"step_info": tree, "dds": []}
-                    # Context Application
                     if proc_stack:
                         outer = proc_stack[-1]
-                        tree['final_proc_name'] = outer['proc']
-                        tree['final_step_name'] = outer['label']
-                        tree['final_proc_step_name'] = tree['label']
+                        tree['final_proc_name'], tree['final_step_name'], tree['final_proc_step_name'] = outer['proc'], outer['label'], tree['label']
                     else:
-                        tree['final_proc_name'] = tree['params'].get('PROC')
-                        tree['final_step_name'] = tree['label']
-                        tree['final_proc_step_name'] = None
-                        
+                        tree['final_proc_name'], tree['final_step_name'], tree['final_proc_step_name'] = tree['params'].get('PROC'), tree['label'], None
+                    
+                    # Logic Mapping: IF condition : ELSE condition | COND=...
+                    merged_parts = []
+                    if if_stack:
+                        nested_list = []
+                        for node in if_stack:
+                            prefix = "ELSE " if node['is_else'] else "IF "
+                            nested_list.append(f"{prefix}{node['expr']}")
+                        merged_parts.append(" : ".join(nested_list))
+                    
+                    exec_cond = tree['params'].get('COND')
+                    if exec_cond: merged_parts.append(f"COND={exec_cond}")
+                    
+                    tree['merged_cond_logic'] = " | ".join(merged_parts) if merged_parts else None
                     self.steps.append(self.current_step)
-                elif tree['type'] == 'DD':
-                    if self.current_step: self.current_step['dds'].append(tree)
+                elif tree['type'] == 'DD' and self.current_step:
+                    self.current_step['dds'].append(tree)
             except Exception as e: 
                 print(f"Parser Error: {stmt}\n{e}")
         return self.steps
@@ -414,16 +448,9 @@ class DatabaseManager:
     def create_tables(self, drop_tables):
         with self.conn.cursor() as cursor:
             if drop_tables:
-                cursor.execute("DROP TABLE IF EXISTS DATA_ALLOCATIONS CASCADE;")
-                cursor.execute("DROP TABLE IF EXISTS STEPS CASCADE;")
-                cursor.execute("DROP TABLE IF EXISTS PROJECTS CASCADE;")
-
+                cursor.execute("DROP TABLE IF EXISTS DATA_ALLOCATIONS CASCADE; DROP TABLE IF EXISTS STEPS CASCADE; DROP TABLE IF EXISTS PROJECTS CASCADE;")
             cursor.execute("""
-            CREATE TABLE IF NOT EXISTS PROJECTS (
-                project_id SERIAL PRIMARY KEY,
-                project_name TEXT NOT NULL UNIQUE,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            );
+            CREATE TABLE IF NOT EXISTS PROJECTS (project_id SERIAL PRIMARY KEY, project_name TEXT NOT NULL UNIQUE, created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS STEPS (
                 project_id INTEGER NOT NULL REFERENCES PROJECTS(project_id),
                 step_id INTEGER NOT NULL,
@@ -464,10 +491,7 @@ class DatabaseManager:
 
     def insert_project_data(self, project_name, structured_data):
         with self.conn.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO PROJECTS (project_name) VALUES (%s) 
-                ON CONFLICT (project_name) DO NOTHING RETURNING project_id
-            """, (project_name,))
+            cursor.execute("INSERT INTO PROJECTS (project_name) VALUES (%s) ON CONFLICT (project_name) DO NOTHING RETURNING project_id", (project_name,))
             res = cursor.fetchone()
             project_id = res[0] if res else None
             if not project_id:
@@ -487,74 +511,50 @@ class DatabaseManager:
                     INSERT INTO STEPS (project_id, step_id, relative_step, step_name, proc_step_name, program_name, proc_name, parameters, cond_logic)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
-                    project_id, step_id_counter, rel_step_str, 
-                    info['final_step_name'], info['final_proc_step_name'], 
-                    params.get('PGM'), info['final_proc_name'],
-                    params.get('PARM'), params.get('COND')
+                    project_id, step_id_counter, rel_step_str, info['final_step_name'], info['final_proc_step_name'], 
+                    params.get('PGM'), info['final_proc_name'], params.get('PARM'), info['merged_cond_logic']
                 ))
 
                 last_dd_name, allocation_offset, ds_id_counter = None, 0, 0
                 for dd in step['dds']:
                     ds_id_counter += 1
-                    current_label = dd.get('label')
-                    if current_label:
-                        last_dd_name = current_label; allocation_offset = 1
-                    else:
-                        allocation_offset += 1
-
-                    dd_params = dd['params']
-                    dsn = dd_params.get('DSN')
-                    if dd_params.get('DUMMY'): dsn = "(dummy)"
-                    elif dd_params.get('INSTREAM'): dsn = "(input stream)"
-                    elif 'SYSOUT' in dd_params: dsn = "(output stream)"
+                    label = dd.get('label')
+                    if label: last_dd_name, allocation_offset = label, 1
+                    else: allocation_offset += 1
+                    p = dd['params']
+                    dsn = p.get('DSN')
+                    if p.get('DUMMY'): dsn = "(dummy)"
+                    elif p.get('INSTREAM'): dsn = "(input stream)"
+                    elif 'SYSOUT' in p: dsn = "(output stream)"
                     elif not dsn: dsn = "(work_ds)"
-
-                    disp = dd_params.get('DISP', [])
-                    status = disp[0] if len(disp) > 0 else None
-                    normal = disp[1] if len(disp) > 1 else None
-                    abnormal = disp[2] if len(disp) > 2 else None
-
-                    lrecl, recfm, blksize = dd_params.get('LRECL'), dd_params.get('RECFM'), dd_params.get('BLKSIZE')
-                    dcb_val, extra_dcb = dd_params.get('DCB'), {}
+                    disp = p.get('DISP', [])
+                    status, normal, abnormal = (disp[0] if len(disp)>0 else None), (disp[1] if len(disp)>1 else None), (disp[2] if len(disp)>2 else None)
+                    lrecl, recfm, blksize = p.get('LRECL'), p.get('RECFM'), p.get('BLKSIZE')
+                    dcb_val, extra_dcb = p.get('DCB'), {}
                     if isinstance(dcb_val, dict):
-                        lrecl = lrecl or dcb_val.get('LRECL')
-                        recfm = recfm or dcb_val.get('RECFM')
-                        blksize = blksize or dcb_val.get('BLKSIZE')
+                        lrecl, recfm, blksize = lrecl or dcb_val.get('LRECL'), recfm or dcb_val.get('RECFM'), blksize or dcb_val.get('BLKSIZE')
                         extra_dcb = {k:v for k,v in dcb_val.items() if k not in ('LRECL','RECFM','BLKSIZE')}
-
                     cursor.execute("""
-                        INSERT INTO DATA_ALLOCATIONS (
-                            project_id, step_id, ds_id, dd_name, allocation_offset, dsn, disp_status, 
-                            disp_normal_term, disp_abnormal_term, unit, vol_ser, is_dummy, 
-                            instream_ref, lrecl, blksize, recfm, dcb_attributes
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO DATA_ALLOCATIONS (project_id, step_id, ds_id, dd_name, allocation_offset, dsn, disp_status, disp_normal_term, disp_abnormal_term, unit, vol_ser, is_dummy, instream_ref, lrecl, blksize, recfm, dcb_attributes)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     """, (
-                        project_id, step_id_counter, ds_id_counter, last_dd_name, allocation_offset, dsn,
-                        status, normal, abnormal, dd_params.get('UNIT'), dd_params.get('VOL'),
-                        bool(dd_params.get('DUMMY')), "\n".join(dd.get('payload', [])),
-                        lrecl, blksize, recfm, Json(extra_dcb)
+                        project_id, step_id_counter, ds_id_counter, last_dd_name, allocation_offset, dsn, status, normal, abnormal, p.get('UNIT'), p.get('VOL'),
+                        bool(p.get('DUMMY')), "\n".join(dd.get('payload', [])), lrecl, blksize, recfm, Json(extra_dcb)
                     ))
         self.conn.commit()
         print(f"Extraction successful for '{project_name}'.")
-
-# =============================================================================
-# MAIN ORCHESTRATION
-# =============================================================================
 
 if __name__ == "__main__":
     CONFIG_FILE = 'config.json'
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r') as f:
-            config = json.load(f)
-        db_credentials = {
-            "host": "localhost", "database": config.get("DATABASE", "jcl_db"),
-            "user": config.get("USER", "postgres"), "password": config.get("PASSWORD", ""), "port": 5432
-        }
+            raw = f.read()
+            raw = re.sub(r'("PROJECT":\s*"[^"]*")\s*("SYSTEM":)', r'\1,\2', raw)
+            config = json.loads(raw)
+        db_credentials = {"host": "localhost", "database": config.get("DATABASE", "jcl_db"), "user": config.get("USER", "postgres"), "password": config.get("PASSWORD", ""), "port": 5432}
         pre = JCLPreprocessor(config)
         path = pre.resolve_path(config["FILE"])
         if path:
-            res = pre.preprocess_file(path)
-            manager = JCLParserManager()
-            data = manager.process_results(res)
+            data = JCLParserManager().process_results(pre.preprocess_file(path))
             db = DatabaseManager(db_credentials, drop_tables=config.get("DROP_TABLES", False))
             db.insert_project_data(config["PROJECT"], data)
