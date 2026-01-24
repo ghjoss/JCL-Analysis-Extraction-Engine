@@ -1,0 +1,14 @@
+{
+  "PROJECT":"Reorg_CMN_D_VSAM",
+  "SYSTEM": "LWM",
+  "FILE": "JOB_MEMBER",
+  "EXT": "jcl",
+  "PATH": "~/path/to/FILE",
+  "LIB": [
+    "/~/PATH/to/INCLUDE_OR_PROC/"
+  ],
+  "DATABASE": "jcl_db",
+  "USER":"postgres",
+  "PASSWORD":"password_for_user",
+  "DROP_TABLES": "False"
+}
