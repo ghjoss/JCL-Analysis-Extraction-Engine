@@ -16,9 +16,15 @@ class JCLPreprocessor:
         self.system_type = config.get("SYSTEM", "LWM")
         self.symbol_table = {}
         self.procedure_map = {}
-        path_val = config.get("PATH")
-        lib_val = config.get("LIB", [])
-        self.lib_paths = ([path_val] if path_val else []) + (lib_val if isinstance(lib_val, list) else [])
+        
+        # Resolve pathing and search libraries
+        path_input = config.get("PATH", ".")
+        self.path_val = path_input
+        lib_input = config.get("LIB", [])
+        
+        # lib_paths is used for searching PROCs and INCLUDEs
+        self.lib_paths = ([path_input] if path_input else []) + (lib_input if isinstance(lib_input, list) else [])
+        self.ext = config.get("EXT", "")
         
         # Regex patterns for statement identification
         self.re_job_admin = re.compile(r"//([A-Z$#@][A-Z0-9$#@]{0,7})?\s+(JOB|CNTL|ENDCNTL|EXPORT|NOTIFY|OUTPUT|SCHEDULE|JCLLIB|SET)(\s+|$)", re.IGNORECASE)
@@ -31,15 +37,17 @@ class JCLPreprocessor:
         self.re_exec = re.compile(r"//([A-Z$#@][A-Z0-9$#@]{0,7})?\s+EXEC\s+(PGM=|PROC=)?([A-Z$#@][A-Z0-9$#@]{0,7})", re.IGNORECASE)
         self.re_dd_instream = re.compile(r"//([A-Z$#@][A-Z0-9$#@]{0,7})?\s+DD\s+(\*|DATA)", re.IGNORECASE)
 
-    def resolve_path(self, member_name):
-        for base in self.lib_paths:
+    def resolve_path(self, member_name, is_main_file=False):
+        """Locates JCL member using configured search paths and extensions."""
+        search_libs = [self.path_val] if is_main_file else self.lib_paths
+        for base in search_libs:
             if not base: continue
             if self.system_type == "Z":
                 path = f"{base}({member_name})"
             else:
-                ext = self.config.get("EXT", "")
-                filename = f"{member_name}.{ext}" if ext else member_name
+                filename = f"{member_name}.{self.ext}" if self.ext else member_name
                 path = os.path.join(base, filename)
+            
             if self.system_type != "Z" and os.path.exists(path):
                 return path
             elif self.system_type == "Z":
@@ -47,16 +55,17 @@ class JCLPreprocessor:
         return None
 
     def clean_line(self, line):
+        """Strips columns 73-80 and filters JCL comments."""
         line = line.rstrip('\n').rstrip('\r')
         line = line[:72]
         if line.startswith("//*") or line.startswith("/*") or line.strip() == "//":
             return None
         return line
 
-    def strip_jcl_comment(self, line, is_continuation):
-        """Modified to allow spaces in IF condition operands."""
+    def strip_jcl_comment(self, line, is_continuing):
+        """Isolates JCL operands. Protects spaces within logical IF expressions."""
         line_clean = line.rstrip()
-        if is_continuation:
+        if is_continuing:
             content = line_clean.lstrip('/')
             operands_and_comment = content.lstrip()
             prefix = ""
@@ -66,19 +75,14 @@ class JCLPreprocessor:
             prefix = " ".join(parts[:2])
             operands_and_comment = parts[2]
             
-            # Special Handling for IF statement: Don't break on first space
             if parts[1].upper() == "IF":
-                # Capture everything until ' THEN' or the end of the line
                 then_match = re.search(r"\s+THEN($|\s+)", operands_and_comment, re.IGNORECASE)
                 if then_match:
                     operands = operands_and_comment[:then_match.start()].strip()
-                    # We return the condition and THEN, stripping comments after THEN
                     return f"{prefix} {operands} THEN"
                 else:
-                    # No THEN on this line, return whole operands area as part of condition
                     return f"{prefix} {operands_and_comment.strip()}"
 
-        # Standard logic for EXEC/DD: Comment starts at the first space in operands
         in_quotes = False
         end_idx = len(operands_and_comment)
         for i, char in enumerate(operands_and_comment):
@@ -90,6 +94,7 @@ class JCLPreprocessor:
         return (prefix + " " + operands).strip() if prefix else operands.strip()
 
     def parse_params(self, param_string):
+        """Standard JCL param parser (KEY=VAL) for symbol resolution."""
         params = {}
         if not param_string: return params
         parts, current, in_quotes = [], [], False
@@ -107,6 +112,7 @@ class JCLPreprocessor:
         return params
 
     def expand_procedure(self, proc_name, exec_stmt, outer_label):
+        """Inlines procedure members while resolving local symbolics."""
         proc_data = self.procedure_map.get(proc_name.upper())
         if not proc_data:
             path = self.resolve_path(proc_name)
@@ -137,6 +143,7 @@ class JCLPreprocessor:
         return [f"*PROC_START* label={outer_label} proc={proc_name}"] + expanded + ["*PROC_END*"]
 
     def process_line_list(self, lines):
+        """Main preprocessor logic for flattening JCL and handling logical blocks."""
         statements = []
         current_statement = ""
         is_continuing = False
@@ -152,7 +159,7 @@ class JCLPreprocessor:
             is_continuing = False
             stmt = self.apply_symbolics(current_statement); current_statement = ""
             
-            # Logic Blocks - Capture expression accurately
+            # Handle JCL IF/THEN/ELSE/ENDIF determination logic
             if self.re_if.search(stmt):
                 m = self.re_if.search(stmt)
                 condition = re.sub(r"\s+THEN$", "", m.group(2).strip(), flags=re.IGNORECASE)
@@ -343,6 +350,7 @@ class JCLTransformer(Transformer):
     def dsn_value(self, children): return "".join([str(c) for c in children if c is not None])
     
     def exec_statement(self, children): 
+        # Ensures 'params' is always a dictionary to prevent AttributeError in DB insertion
         return {"type": "EXEC", "label": children[0], "params": self._merge_dicts(children[1:])}
     def unnamed_exec(self, children): 
         return {"type": "EXEC", "label": None, "params": self._merge_dicts(children)}
@@ -409,14 +417,14 @@ class JCLParserManager:
             try:
                 tree = self.parser.parse(stmt)
                 if tree['type'] == 'EXEC':
-                    self.current_step = {"step_info": tree, "dds": []}
+                    self.current_step = {"step_info": tree, "dds": [], "raw_stmt": stmt}
                     if proc_stack:
                         outer = proc_stack[-1]
                         tree['final_proc_name'], tree['final_step_name'], tree['final_proc_step_name'] = outer['proc'], outer['label'], tree['label']
                     else:
                         tree['final_proc_name'], tree['final_step_name'], tree['final_proc_step_name'] = tree['params'].get('PROC'), tree['label'], None
                     
-                    # Logic Mapping: IF condition : ELSE condition | COND=...
+                    # Construct colon-nested cond_logic
                     merged_parts = []
                     if if_stack:
                         nested_list = []
@@ -427,23 +435,30 @@ class JCLParserManager:
                     
                     exec_cond = tree['params'].get('COND')
                     if exec_cond: merged_parts.append(f"COND={exec_cond}")
-                    
                     tree['merged_cond_logic'] = " | ".join(merged_parts) if merged_parts else None
                     self.steps.append(self.current_step)
                 elif tree['type'] == 'DD' and self.current_step:
+                    tree['raw_stmt'] = stmt
                     self.current_step['dds'].append(tree)
             except Exception as e: 
                 print(f"Parser Error: {stmt}\n{e}")
         return self.steps
 
 # =============================================================================
-# DATABASE MANAGER
+# OUTPUT MANAGERS
 # =============================================================================
 
 class DatabaseManager:
     def __init__(self, db_config, drop_tables=False):
-        self.conn = psycopg2.connect(**db_config)
-        self.create_tables(drop_tables)
+        self.dbname = db_config.get("database", "unknown")
+        print(f"Connecting to database: {self.dbname}...")
+        try:
+            self.conn = psycopg2.connect(**db_config)
+            print(f"Postgres Connection Status: Success (Connected to {self.dbname})")
+            self.create_tables(drop_tables)
+        except Exception as e:
+            print(f"Postgres Connection Status: Failed - {e}")
+            raise
 
     def create_tables(self, drop_tables):
         with self.conn.cursor() as cursor:
@@ -454,7 +469,6 @@ class DatabaseManager:
             CREATE TABLE IF NOT EXISTS STEPS (
                 project_id INTEGER NOT NULL REFERENCES PROJECTS(project_id),
                 step_id INTEGER NOT NULL,
-                relative_step VARCHAR(8) NOT NULL,
                 step_name VARCHAR(8),
                 proc_step_name VARCHAR(8),
                 program_name VARCHAR(8),
@@ -489,7 +503,12 @@ class DatabaseManager:
             """)
         self.conn.commit()
 
-    def insert_project_data(self, project_name, structured_data):
+    def disconnect(self):
+        if hasattr(self, 'conn') and self.conn:
+            self.conn.close()
+            print(f"Disconnecting from database: {self.dbname}")
+
+    def insert_project_data(self, project_name, structured_data, log_enabled=False):
         with self.conn.cursor() as cursor:
             cursor.execute("INSERT INTO PROJECTS (project_name) VALUES (%s) ON CONFLICT (project_name) DO NOTHING RETURNING project_id", (project_name,))
             res = cursor.fetchone()
@@ -498,35 +517,41 @@ class DatabaseManager:
                 cursor.execute("SELECT project_id FROM PROJECTS WHERE project_name = %s", (project_name,))
                 project_id = cursor.fetchone()[0]
 
-            relative_step_counter = 0
             cursor.execute("SELECT COALESCE(MAX(step_id), 0) FROM STEPS WHERE project_id = %s", (project_id,))
             step_id_counter = cursor.fetchone()[0]
 
             for step in structured_data:
-                step_id_counter += 1; relative_step_counter += 1
-                rel_step_str = f"X{relative_step_counter:07d}"
+                step_id_counter += 1
                 info = step['step_info']; params = info['params']
                 
+                if log_enabled:
+                    print(f"{step_id_counter} {step['raw_stmt']}")
+
                 cursor.execute("""
-                    INSERT INTO STEPS (project_id, step_id, relative_step, step_name, proc_step_name, program_name, proc_name, parameters, cond_logic)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO STEPS (project_id, step_id, step_name, proc_step_name, program_name, proc_name, parameters, cond_logic)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
-                    project_id, step_id_counter, rel_step_str, info['final_step_name'], info['final_proc_step_name'], 
+                    project_id, step_id_counter, info['final_step_name'], info['final_proc_step_name'], 
                     params.get('PGM'), info['final_proc_name'], params.get('PARM'), info['merged_cond_logic']
                 ))
 
-                last_dd_name, allocation_offset, ds_id_counter = None, 0, 0
+                last_dd_name, ds_id_counter = None, 0
                 for dd in step['dds']:
                     ds_id_counter += 1
                     label = dd.get('label')
                     if label: last_dd_name, allocation_offset = label, 1
                     else: allocation_offset += 1
+                    
+                    if log_enabled:
+                        print(f"  {ds_id_counter} {dd['raw_stmt']}")
+                    
                     p = dd['params']
                     dsn = p.get('DSN')
                     if p.get('DUMMY'): dsn = "(dummy)"
                     elif p.get('INSTREAM'): dsn = "(input stream)"
                     elif 'SYSOUT' in p: dsn = "(output stream)"
                     elif not dsn: dsn = "(work_ds)"
+                    
                     disp = p.get('DISP', [])
                     status, normal, abnormal = (disp[0] if len(disp)>0 else None), (disp[1] if len(disp)>1 else None), (disp[2] if len(disp)>2 else None)
                     lrecl, recfm, blksize = p.get('LRECL'), p.get('RECFM'), p.get('BLKSIZE')
@@ -542,19 +567,87 @@ class DatabaseManager:
                         bool(p.get('DUMMY')), "\n".join(dd.get('payload', [])), lrecl, blksize, recfm, Json(extra_dcb)
                     ))
         self.conn.commit()
-        print(f"Extraction successful for '{project_name}'.")
+
+def save_as_json(project_name, structured_data, log_enabled=False):
+    filename = f"{project_name}.json"
+    print(f"Opening output file: {filename}")
+    output = {"project": project_name, "steps": []}
+    step_id_counter = 0
+    for step in structured_data:
+        step_id_counter += 1
+        info = step['step_info']
+        
+        if log_enabled:
+            print(f"{step_id_counter} {step['raw_stmt']}")
+            
+        step_data = {
+            "step_id": step_id_counter, "step_name": info['final_step_name'], "proc_step_name": info['final_proc_step_name'],
+            "program_name": info['params'].get('PGM'), "proc_name": info['final_proc_name'],
+            "parameters": info['params'].get('PARM'), "cond_logic": info['merged_cond_logic'], "dds": []
+        }
+        ds_id_counter = 0
+        for dd in step['dds']:
+            ds_id_counter += 1
+            if log_enabled:
+                print(f"  {ds_id_counter} {dd['raw_stmt']}")
+            step_data['dds'].append({"ds_id": ds_id_counter, "dd_name": dd.get('label'), "params": dd['params'], "instream": dd.get('payload')})
+        output['steps'].append(step_data)
+        
+    with open(filename, 'w') as f:
+        json.dump(output, f, indent=4)
+    print(f"Closing output file: {filename}")
+
+# =============================================================================
+# MAIN ORCHESTRATION
+# =============================================================================
 
 if __name__ == "__main__":
+    print("--- Starting JCL Analysis Engine ---")
     CONFIG_FILE = 'config.json'
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r') as f:
-            raw = f.read()
-            raw = re.sub(r'("PROJECT":\s*"[^"]*")\s*("SYSTEM":)', r'\1,\2', raw)
-            config = json.loads(raw)
-        db_credentials = {"host": "localhost", "database": config.get("DATABASE", "jcl_db"), "user": config.get("USER", "postgres"), "password": config.get("PASSWORD", ""), "port": 5432}
+            raw_content = f.read()
+            # Common fix for missing commas in user-edited config
+            raw_content = re.sub(r'("PROJECT":\s*"[^"]*")\s*("SYSTEM":)', r'\1,\2', raw_content)
+            config = json.loads(raw_content)
+        
+        output_mode = config.get("OUTPUT", "P").upper()
+        log_enabled = str(config.get("LOG", "False")).lower() == "true"
+        drop_tables = str(config.get("DROP_TABLES", "False")).lower() == "true"
+        
         pre = JCLPreprocessor(config)
-        path = pre.resolve_path(config["FILE"])
+        # Search for main file specifically in PATH
+        path = pre.resolve_path(config["FILE"], is_main_file=True)
+        
         if path:
+            print(f"Processing File: {path}")
             data = JCLParserManager().process_results(pre.preprocess_file(path))
-            db = DatabaseManager(db_credentials, drop_tables=config.get("DROP_TABLES", False))
-            db.insert_project_data(config["PROJECT"], data)
+            
+            # Database Logic
+            db = None
+            if output_mode in ("P", "B"):
+                try:
+                    db_creds = {
+                        "host": "localhost", "database": config.get("DATABASE", "jcl_db"),
+                        "user": config.get("USER", "postgres"), "password": config.get("PASSWORD", ""), "port": 5432
+                    }
+                    db = DatabaseManager(db_creds, drop_tables=drop_tables)
+                    db.insert_project_data(config["PROJECT"], data, log_enabled=log_enabled)
+                    print(f"PostgreSQL: Ingested {len(data)} steps into project '{config['PROJECT']}'.")
+                except Exception as e:
+                    print(f"Database Error: {e}")
+                finally:
+                    if db:
+                        db.disconnect()
+                
+            # JSON Logic
+            if output_mode in ("J", "B"):
+                # Avoid double logging if both are enabled
+                do_log = log_enabled if output_mode == "J" else False
+                save_as_json(config["PROJECT"], data, log_enabled=do_log)
+        else:
+            print(f"Error: JCL member '{config['FILE']}' not found in PATH '{config['PATH']}' with extension '{config['EXT']}'.")
+    else:
+        print("Error: config.json not found.")
+    
+    print("--- Processing Complete. Extraction Successful. ---")

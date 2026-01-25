@@ -1,14 +1,17 @@
 {
-  "PROJECT":"Reorg_CMN_D_VSAM",
+  "PROJECT": "MyJCLProject",
   "SYSTEM": "LWM",
-  "FILE": "JOB_MEMBER",
+  "FILE": "MYJOB",
   "EXT": "jcl",
-  "PATH": "~/path/to/FILE",
+  "PATH": "./source_jcl",
   "LIB": [
-    "/~/PATH/to/INCLUDE_OR_PROC/"
+    "./proc_library",
+    "./include_library"
   ],
   "DATABASE": "jcl_db",
-  "USER":"postgres",
-  "PASSWORD":"password_for_user",
-  "DROP_TABLES": "False"
+  "USER": "postgres",
+  "PASSWORD": "your_password_here",
+  "DROP_TABLES": "True",
+  "OUTPUT": "B",
+  "LOG": "True"
 }

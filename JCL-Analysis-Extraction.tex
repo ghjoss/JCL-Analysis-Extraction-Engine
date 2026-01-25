@@ -1,0 +1,127 @@
+\documentclass[11pt, a4paper]{article}
+
+% --- UNIVERSAL PREAMBLE BLOCK ---
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{fontspec}
+\usepackage[english, bidi=basic, provide=*]{babel}
+
+\babelprovide[import, onchar=ids fonts]{english}
+
+% Set default/Latin font to Sans Serif in the main (rm) slot
+\babelfont{rm}{Noto Sans}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\title{JCL Analysis \& Extraction Engine\\Technical Documentation}
+\author{Extraction Framework v3.5}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Overview}
+This document describes the data structures and configuration parameters used by the JCL Extraction Engine. The engine flattens hierarchical JCL (Procedures, Includes, and Continuations) into sequential program executions and dataset allocations, supporting both PostgreSQL and JSON output formats.
+
+\section{Configuration Specification (config.json)}
+The engine is controlled by a central JSON configuration file. This file defines the source locations, search order, and operational switches for the extraction run.
+
+\begin{table}[htbp]
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Parameter} & \textbf{Type} & \textbf{Description \& Valid Values} \\
+\midrule
+\texttt{PROJECT} & String & A unique identifier for the analysis run. Used as the JSON filename. \\
+\texttt{SYSTEM} & String & \texttt{Z}: Uses z/OS PDS member syntax. \texttt{LWM}: Uses standard Unix/Windows pathing. \\
+\texttt{FILE} & String & The primary JCL member name to be processed. \\
+\texttt{EXT} & String & The file extension used in \texttt{LWM} mode (e.g., \textit{jcl} or \textit{txt}). \\
+\texttt{PATH} & String & The base directory containing the primary source JCL. \\
+\texttt{LIB} & Array & A list of secondary directories searched for \texttt{PROC} and \texttt{INCLUDE} members. \\
+\texttt{DATABASE} & String & The name of the target PostgreSQL database. \\
+\texttt{USER} & String & Database login username (e.g., \textit{postgres}). \\
+\texttt{PASSWORD} & String & Database login password. \\
+\texttt{DROP\_TABLES} & String & \texttt{"True"}: Resets schema. \texttt{"False"}: Appends to existing data. \\
+\texttt{OUTPUT} & String & \texttt{P}: Postgres only. \texttt{J}: JSON only. \texttt{B}: Both outputs. \\
+\texttt{LOG} & String & \texttt{"True"}: Outputs a live processing trace to \texttt{stdout}. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Relational Database Schema (PostgreSQL)}
+The database organizes analyzed data into three relational tables to provide a queryable inventory.
+
+\subsection{Table: PROJECTS}
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\texttt{project\_id} & SERIAL & Primary Key. Unique ID for the specific run. \\
+\texttt{project\_name} & TEXT & Unique name assigned via the \texttt{PROJECT} config key. \\
+\texttt{created\_at} & TIMESTAMPTZ & Audit timestamp of the extraction. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Table: STEPS}
+Represents a resolved \texttt{EXEC} statement.
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\texttt{step\_id} & INTEGER & Sequential execution order within the project. \\
+\texttt{step\_name} & VARCHAR(8) & Outer EXEC label (inherited from JOB level). \\
+\texttt{proc\_step\_name} & VARCHAR(8) & Internal PROC step label (null for PGM executions). \\
+\texttt{program\_name} & VARCHAR(8) & Literal \texttt{PGM=} value. \\
+\texttt{proc\_name} & VARCHAR(8) & Literal \texttt{PROC=} value being expanded. \\
+\texttt{parameters} & TEXT & Substitution-resolved \texttt{PARM=} string. \\
+\texttt{cond\_logic} & TEXT & Merged logic: \textit{IF expr : ELSE expr | COND=...} \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Table: DATA\_ALLOCATIONS}
+Represents a resolved \texttt{DD} statement.
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Column} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\texttt{ds\_id} & INTEGER & Sequential ID within the step. \\
+\texttt{dd\_name} & VARCHAR(8) & Label of the DD (Inherited in concatenations). \\
+\texttt{allocation\_offset}& INTEGER & Order in concatenation (1 for primary). \\
+\texttt{dsn} & VARCHAR(44) & Resolved Dataset Name or Virtual Indicator. \\
+\texttt{disp\_status} & VARCHAR(8) & Initial status (\textit{NEW, OLD, SHR, MOD}). \\
+\texttt{disp\_normal\_term} & VARCHAR(8) & Successful termination action (\textit{CATLG, KEEP, etc.}). \\
+\texttt{disp\_abnormal\_term}& VARCHAR(8) & Abend termination action (\textit{DELETE, CATLG, etc.}). \\
+\texttt{lrecl} & VARCHAR(10) & Extracted Logical Record Length. \\
+\texttt{blksize} & VARCHAR(10) & Extracted Block Size. \\
+\texttt{recfm} & VARCHAR(8) & Extracted Record Format (e.g., \textit{FB, VBA}). \\
+\texttt{dcb\_attributes} & JSONB & Catch-all for \textit{DSORG, BUFNO, FREE, DEST}. \\
+\bottomrule
+\end{tabularx}
+
+\newpage
+\section{JSON Schema Specification}
+The JSON output tree (\texttt{Project} $\rightarrow$ \texttt{Steps} $\rightarrow$ \texttt{Datasets}) is designed for portability.
+
+\subsection{Hierarchy Structure}
+\begin{itemize}[label=-]
+    \item \texttt{project}: String. Identifier used for filenames and indexing.
+    \item \texttt{steps}: Array. Contains objects for every resolved execution.
+    \begin{itemize}[label=$\circ$]
+        \item \texttt{cond\_logic}: String. Flattened logical execution path.
+        \item \texttt{dds}: Array. Dataset allocations containing \texttt{params} and \texttt{instream} payloads.
+    \end{itemize}
+\end{itemize}
+
+\section{Special Mapping Indicators}
+To ensure the output is fully queryable, virtual files are mapped to specific strings in the \texttt{dsn} field:
+\begin{itemize}[label=-]
+    \item \textbf{(dummy)}: \texttt{DUMMY} or \texttt{NULLFILE} detected.
+    \item \textbf{(input stream)}: \texttt{DD *} or \texttt{DD DATA} detected.
+    \item \textbf{(output stream)}: \texttt{SYSOUT} redirection.
+    \item \textbf{(work\_ds)}: Temporary utility files with no explicit name.
+\end{itemize}
+
+\end{document}
